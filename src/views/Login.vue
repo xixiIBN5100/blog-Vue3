@@ -37,7 +37,9 @@
 import { ref } from "vue";
 import fetchRequest from "@/utils/request.ts";
 import {ElNotification} from "element-plus";
+import { useLoginStore } from "@/stores/loginStore.ts";
 
+const loginStore = useLoginStore()
 const loginData = ref({
   username: "",
   password: ""
@@ -51,6 +53,7 @@ const handleLogin = async () => {
     });
     if(data.code === 200) {
       ElNotification.success("登录成功")
+      loginStore.isLogin = true
     } else {
       ElNotification.error(data.msg)
     }

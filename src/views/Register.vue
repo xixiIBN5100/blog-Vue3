@@ -45,6 +45,7 @@
 import { ref } from "vue";
 import fetchRequest from '@/utils/request';
 import {ElNotification} from "element-plus";
+import router from "@/router";
 
 const registerData = ref({
   email: "",
@@ -60,6 +61,7 @@ const handleRegister = async () => {
     });
     if(data.code === 200) {
       ElNotification.success("注册成功")
+      router.push("/login")
     } else {
       ElNotification.error(data.msg)
     }
