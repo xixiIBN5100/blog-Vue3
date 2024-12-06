@@ -22,9 +22,8 @@
         />
       </div>
 
-      <el-button class="login-btn" type="primary">
+      <el-button class="login-btn" type="primary" @click="handleLogin">
         Sign In
-        <el-icon class="el-icon--right"><ArrowRight /></el-icon>
       </el-button>
 
       <div class="additional-links">
@@ -36,11 +35,29 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import fetchRequest from "@/utils/request.ts";
+import {ElNotification} from "element-plus";
 
 const loginData = ref({
   username: "",
   password: ""
 })
+
+const handleLogin = async () => {
+  try {
+    const data = await fetchRequest('/login', {
+      method: 'POST',
+      body: loginData.value
+    });
+    if(data.code === 200) {
+      ElNotification.success("登录成功")
+    } else {
+      ElNotification.error(data.msg)
+    }
+  } catch (e) {
+    ElNotification.error(e)
+  }
+}
 </script>
 
 <style scoped>
