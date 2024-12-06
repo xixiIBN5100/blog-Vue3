@@ -8,9 +8,7 @@
         <label>E-mail</label>
         <el-input
           v-model="registerData.email"
-          type="password"
-          placeholder="Enter your password"
-          show-password
+          placeholder="Enter your e-mail"
         />
       </div>
 
@@ -32,9 +30,8 @@
         />
       </div>
 
-      <el-button class="login-btn" type="primary">
+      <el-button class="login-btn" type="primary" @click="handleRegister">
         Register
-        <el-icon class="el-icon--right"><ArrowRight /></el-icon>
       </el-button>
 
       <div class="additional-links">
@@ -46,12 +43,30 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import fetchRequest from '@/utils/request';
+import {ElNotification} from "element-plus";
 
 const registerData = ref({
   email: "",
   username: "",
   password: ""
 })
+
+const handleRegister = async () => {
+  try {
+    const data = await fetchRequest('/register', {
+      method: 'POST',
+      body: registerData.value
+    });
+    if(data.code === 200) {
+      ElNotification.success("注册成功")
+    } else {
+      ElNotification.error(data.msg)
+    }
+  } catch (e) {
+    ElNotification.error(e)
+  }
+}
 </script>
 
 <style scoped>
