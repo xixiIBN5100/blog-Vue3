@@ -1,13 +1,23 @@
 <template>
   <div class="login-container">
     <div class="login-card">
-      <h1 class="title">Welcome Back</h1>
-      <p class="subtitle">Please sign in to continue</p>
+      <h1 class="title">Welcome Register</h1>
+      <p class="subtitle">Join us now!</p>
+
+      <div class="form-group">
+        <label>E-mail</label>
+        <el-input
+          v-model="registerData.email"
+          type="password"
+          placeholder="Enter your password"
+          show-password
+        />
+      </div>
 
       <div class="form-group">
         <label>Username</label>
         <el-input
-          v-model="loginData.username"
+          v-model="registerData.username"
           placeholder="Enter your username"
         />
       </div>
@@ -15,7 +25,7 @@
       <div class="form-group">
         <label>Password</label>
         <el-input
-          v-model="loginData.password"
+          v-model="registerData.password"
           type="password"
           placeholder="Enter your password"
           show-password
@@ -23,12 +33,12 @@
       </div>
 
       <el-button class="login-btn" type="primary">
-        Sign In
+        Register
         <el-icon class="el-icon--right"><ArrowRight /></el-icon>
       </el-button>
 
       <div class="additional-links">
-        <a href="/register">Create Account</a>
+        <a href="/">Has Account?</a>
       </div>
     </div>
   </div>
@@ -37,7 +47,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
-const loginData = ref({
+const registerData = ref({
+  email: "",
   username: "",
   password: ""
 })
