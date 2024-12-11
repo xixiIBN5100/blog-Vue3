@@ -38,6 +38,7 @@ import { ref } from "vue";
 import fetchRequest from "@/utils/request.ts";
 import {ElNotification} from "element-plus";
 import { useLoginStore } from "@/stores/loginStore.ts";
+import router from "@/router";
 
 const loginStore = useLoginStore()
 const loginData = ref({
@@ -54,6 +55,8 @@ const handleLogin = async () => {
     if(data.code === 200) {
       ElNotification.success("登录成功")
       loginStore.isLogin = true
+      loginStore.userId = data.data.user_id
+      await router.push("/ground")
     } else {
       ElNotification.error(data.msg)
     }

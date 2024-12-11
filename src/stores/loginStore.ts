@@ -3,6 +3,9 @@ import { defineStore } from 'pinia'
 
 export const useLoginStore = defineStore('loginStore', () => {
   const isLogin = ref(false)
-
-  return { isLogin }
+  const userId = ref(-1)
+  return {
+    isLogin,
+    userId,
+  }
 })

@@ -30,8 +30,12 @@
 
 import {Setting} from "@element-plus/icons-vue";
 import TitleBar from "@/components/titleBar.vue";
-import {ref} from "vue";
+import {onMounted, ref} from "vue";
+import fetchRequest from "@/utils/request.ts";
+import {useLoginStore} from "@/stores/loginStore.ts";
+import {ElNotification} from "element-plus";
 
+const loginStore = useLoginStore()
 const submitForm = ref({
   user_id: "",
   username: "",
@@ -40,6 +44,27 @@ const submitForm = ref({
   old_password: "",
   new_password: ""
 })
+
+onMounted(() => {
+  getInfo()
+})
+
+const getInfo = async () => {
+  try {
+    const res = await fetchRequest(`/user/${loginStore.userId}`, {
+      method: "GET",
+    })
+    if(res.code === 200){
+      Object.assign(submitForm.value, res.data)
+      console.log(submitForm.value)
+    } else {
+      ElNotification.error(res.message)
+    }
+  } catch (e) {
+    ElNotification.error(e)
+  }
+
+}
 </script>
 <style scoped>
 

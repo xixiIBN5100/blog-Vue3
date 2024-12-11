@@ -6,7 +6,7 @@
 
     <div style="padding: 40px;margin-top: 30px">
       <el-scrollbar max-height="80vh">
-        <div style="display: flex; flex-direction: column; gap: 20px">
+        <div style="display: flex; flex-direction: column; gap: 20px" v-if="showData">
           <div v-for="post of showData" >
             <el-card>
               <template #header>
@@ -33,65 +33,36 @@
 
 import TitleBar from "@/components/titleBar.vue";
 import {Location, View} from "@element-plus/icons-vue";
-import {ref} from "vue";
+import {onMounted, ref} from "vue";
+import fetchRequest from "@/utils/request.ts";
+import {ElNotification} from "element-plus";
 
-const showData = ref( [
-  {
-    article_id: 1,
-    title: "my third post",
-    content: "hello world",
-    creater_id: 1,
-    modifier_id: 1,
-    created_at: "2024-12-03 17:08:25",
-    updated_at: "2024-12-03 17:08:25",
-    likes: 0,
-    views: 0
-  },
-  {
-    article_id: 2,
-    title: "my third post",
-    content: "hello world",
-    creater_id: 1,
-    modifier_id: 1,
-    created_at: "2024-12-03 17:08:27",
-    updated_at: "2024-12-03 17:08:27",
-    likes: 0,
-    views: 0
-  },
-  {
-    article_id: 2,
-    title: "my third post",
-    content: "hello world",
-    creater_id: 1,
-    modifier_id: 1,
-    created_at: "2024-12-03 17:08:27",
-    updated_at: "2024-12-03 17:08:27",
-    likes: 0,
-    views: 0
-  },
-  {
-    article_id: 2,
-    title: "my third post",
-    content: "hello world",
-    creater_id: 1,
-    modifier_id: 1,
-    created_at: "2024-12-03 17:08:27",
-    updated_at: "2024-12-03 17:08:27",
-    likes: 0,
-    views: 0
-  },
-  {
-    article_id: 2,
-    title: "my third post",
-    content: "hello world",
-    creater_id: 1,
-    modifier_id: 1,
-    created_at: "2024-12-03 17:08:27",
-    updated_at: "2024-12-03 17:08:27",
-    likes: 0,
-    views: 0
+const showData = ref()
+
+onMounted(() => {
+  getBlog()
+  console.log(showData.value)
+})
+
+const getBlog = async () => {
+  try {
+    const res = await fetchRequest("/blog/articleList", {
+      method: "GET",
+      params: {
+        page: 1,
+        size: 5
+      }
+    })
+
+    if (res.code === 200) {
+      showData.value = res.data
+    } else {
+
+    }
+  } catch (e) {
+    ElNotification.error(e)
   }
-])
+}
 </script>
 
 <style scoped>

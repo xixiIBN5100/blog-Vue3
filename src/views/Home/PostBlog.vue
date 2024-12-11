@@ -15,7 +15,7 @@
         </el-form-item>
         <el-form-item>
           <div style="display: flex; justify-content: center;width: 100%">
-            <el-button type="success" style="width: 100%">发布</el-button>
+            <el-button type="success" style="width: 100%" @click="handleSubmit" >发布</el-button>
           </div>
         </el-form-item>
       </el-form>
@@ -27,12 +27,33 @@
 import TitleBar from "@/components/titleBar.vue";
 import {Document} from "@element-plus/icons-vue";
 import {ref} from "vue";
+import fetchRequest from "@/utils/request.ts";
+import {ElNotification} from "element-plus";
 
 const submitForm = ref({
   title: "",
   content: ""
 })
+const handleSubmit = async () => {
+  try {
+    const res = await fetchRequest("/blog/articles", {
+      method: "POST",
+      body: submitForm.value
+    });
+    if (res.code === 200) {
+      submitForm.value.content = ""
+      submitForm.value.title = ""
+      ElNotification.success("发布成功")
+    } else {
+      ElNotification.error(res.message)
+    }
+  } catch (e) {
+    ElNotification.error(e)
+  }
+}
 </script>
+
+
 
 <style scoped>
 
