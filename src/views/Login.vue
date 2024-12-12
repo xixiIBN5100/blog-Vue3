@@ -56,6 +56,7 @@ const handleLogin = async () => {
       ElNotification.success("登录成功")
       loginStore.isLogin = true
       loginStore.userId = data.data.user_id
+      loginStore.role = data.data.role
       await router.push("/ground")
     } else {
       ElNotification.error(data.msg)

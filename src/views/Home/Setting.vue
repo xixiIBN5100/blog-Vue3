@@ -20,7 +20,7 @@
       </el-form-item>
     </el-form>
     <div style="display: flex; justify-content: center;width: 100%">
-      <el-button type="success" style="width: 100%">确认更改</el-button>
+      <el-button type="success" style="width: 100%" @click="handleClick" >确认更改</el-button>
     </div>
   </div>
 </div>
@@ -64,6 +64,25 @@ const getInfo = async () => {
     ElNotification.error(e)
   }
 
+}
+
+const handleClick = async () => {
+  try{
+    const res = await fetchRequest("/user/put", {
+      method: "PUT",
+      body: submitForm.value
+    })
+
+    if(res.code === 200) {
+      ElNotification.success("修改成功")
+      submitForm.value.new_password = ""
+      submitForm.value.old_password = ""
+    } else {
+      ElNotification.error(res.msg)
+    }
+  } catch (e) {
+    ElNotification.error(e)
+  }
 }
 </script>
 <style scoped>

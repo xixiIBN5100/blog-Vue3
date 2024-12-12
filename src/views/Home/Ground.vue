@@ -4,8 +4,8 @@
       <el-icon><location /></el-icon> <span>博客广场</span>
     </TitleBar>
 
-    <div style="padding: 40px;margin-top: 30px">
-      <el-scrollbar max-height="80vh">
+    <div style="padding: 40px;margin-top: 30px" >
+      <ul v-infinite-scroll="getBlog"  style="overflow: auto; max-height: 75vh">
         <div style="display: flex; flex-direction: column; gap: 20px" v-if="showData">
           <div v-for="post of showData" >
             <el-card>
@@ -18,13 +18,13 @@
               <template #footer>
                 <span style="display: flex;justify-content: space-between">
                   <span style="display: flex;align-items: center;gap: 10px"><el-icon><View /></el-icon> {{ post.views }} </span>
-                  <span> <el-button plain>查看文章</el-button></span>
+                  <span> <el-button plain @click="handleClick(post.article_id)" >查看文章</el-button></span>
                 </span>
               </template>
             </el-card>
           </div>
         </div>
-      </el-scrollbar>
+      </ul>
     </div>
   </div>
 </template>
@@ -35,9 +35,9 @@ import TitleBar from "@/components/titleBar.vue";
 import {Location, View} from "@element-plus/icons-vue";
 import {onMounted, ref} from "vue";
 import fetchRequest from "@/utils/request.ts";
-import {ElNotification} from "element-plus";
-
-const showData = ref()
+import router from "@/router";
+const curPage = ref(0)
+const showData = ref([])
 
 onMounted(() => {
   getBlog()
@@ -45,23 +45,28 @@ onMounted(() => {
 })
 
 const getBlog = async () => {
-  try {
+  curPage.value++
     const res = await fetchRequest("/blog/articleList", {
       method: "GET",
       params: {
-        page: 1,
-        size: 5
+        page: curPage.value,
+        size: 4
       }
     })
 
     if (res.code === 200) {
-      showData.value = res.data
-    } else {
-
+      if(showData.value.length === 0){
+        showData.value = res.data
+      } else {
+        showData.value = [...showData.value, ...res.data]
+        console.log(showData.value)
+      }
     }
-  } catch (e) {
-    ElNotification.error(e)
-  }
+}
+
+const handleClick = (article_id) => {
+  localStorage.setItem("article_id", article_id)
+  router.push("/detail")
 }
 </script>
 

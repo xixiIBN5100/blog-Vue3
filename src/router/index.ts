@@ -6,6 +6,7 @@ import Setting from "@/views/Home/Setting.vue";
 import Ground from "@/views/Home/Ground.vue";
 import PostBlog from "@/views/Home/PostBlog.vue";
 import MyBlog from "@/views/Home/MyBlog.vue";
+import Detail from "@/views/Home/Detail.vue";
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -43,7 +44,11 @@ const router = createRouter({
           name: 'MyBlog',
           component: MyBlog
         },
-
+        {
+          path: '/detail',
+          name: 'Detail',
+          component: Detail
+        }
       ]
     }
   ],

@@ -5,7 +5,6 @@
       style="flex: 0.15; height: 100vh;"
       :router="true"
     >
-      <span>blog System</span>
       <el-menu-item index="1" route="/ground">
         <el-icon><location /></el-icon>
         <span>博客广场</span>
@@ -14,10 +13,10 @@
         <el-icon><document /></el-icon>
         <span>发布博客</span>
       </el-menu-item>
-      <el-menu-item index="3" route="/myBlog">
-        <el-icon><User /></el-icon>
-        <span>我的博客</span>
-      </el-menu-item>
+<!--      <el-menu-item index="3" route="/myBlog">-->
+<!--        <el-icon><User /></el-icon>-->
+<!--        <span>我的博客</span>-->
+<!--      </el-menu-item>-->
       <el-menu-item index="4" route="/setting">
         <el-icon><setting /></el-icon>
         <span>账号设置</span>
