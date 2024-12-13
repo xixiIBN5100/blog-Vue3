@@ -10,4 +10,6 @@ export const useLoginStore = defineStore('loginStore', () => {
     userId,
     role
   }
+}, {
+  persist: true
 })

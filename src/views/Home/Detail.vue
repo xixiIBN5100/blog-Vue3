@@ -3,7 +3,7 @@
     <TitleBar>
        <span>博客详情</span>
     </TitleBar>
-    <div style="padding: 30px; margin-top: 30px">
+    <div style="padding: 10px 30px; margin-top: 10px">
     <el-card v-if="showInfo" >
       <template #header v-if="showInfo.title && showInfo.content">
         {{ showInfo.title }}
@@ -25,7 +25,24 @@
         </span>
       </template>
     </el-card>
+      <el-card style="margin-top: 20px;">
+        <template #header>评论</template>
+        <div>
+          <el-input type="textarea" :rows="2"  maxlength="200" show-word-limit resize="none" v-model="commentContent" />
+          <span style="margin-top:10px;display: flex; justify-content: end"><el-button type="success"  @click="postComment">发布</el-button></span>
+        </div>
+        <template #footer>
+          <div style="overflow: auto; max-height: 55vh">
+            <span v-for="comment of commentData"  style="display: flex;flex-direction: column; gap: 10px; justify-content: start">
+              {{ comment.content }}
+            </span>
+          </div>
+        </template>
+
+      </el-card>
     </div>
+
+
   </div>
 </template>
 
@@ -36,13 +53,50 @@ import fetchRequest from "@/utils/request.ts";
 import {onMounted, ref} from "vue";
 import {ElNotification} from "element-plus";
 import {View} from "@element-plus/icons-vue";
+import {useInfoStore} from "@/stores/infoStore.ts";
 const articleId = localStorage.getItem('article_id')
 const showInfo = ref()
-const isLike = ref(false)
-
+const infoStore = useInfoStore()
+const commentContent = ref("")
+const commentData = ref()
+const isLike = ref(infoStore.isLike[articleId]? infoStore.isLike[articleId]: false)
+if(!infoStore.isLike[articleId]){
+  infoStore.isLike[articleId] = false
+}
 onMounted(() => {
   getInfo()
 })
+
+const postComment = async () => {
+  const res = await fetchRequest("/blog/comments", {
+    method: "POST",
+    body: {
+      article_id: articleId,
+      content: commentContent.value
+    }
+  })
+
+  if(res.code === 200){
+    commentContent.value = ""
+    getCommentData()
+    ElNotification.success("发布成功")
+  }
+}
+
+const getCommentData = async () => {
+  const res = await fetchRequest("/blog/comments", {
+    method: "GET",
+    params: {
+      article_id: articleId
+    }
+  })
+
+  if(res.code === 200){
+    commentData.value = res.data
+  } else {
+    ElNotification.error(res.message)
+  }
+}
 const handleLikeClick = async () => {
   const res = await fetchRequest("/blog/articles/like", {
     method: "PUT",
@@ -52,6 +106,7 @@ const handleLikeClick = async () => {
   })
   if(res.code === 200){
     isLike.value = !isLike.value
+    infoStore.isLike[articleId] = isLike.value
     showInfo.value.likes = res.data.likes
   }
 }
