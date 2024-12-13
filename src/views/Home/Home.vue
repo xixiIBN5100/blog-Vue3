@@ -4,6 +4,7 @@
       background-color="#f3f3f3"
       style="flex: 0.15; height: 100vh;"
       :router="true"
+      default-active="1"
     >
       <el-menu-item index="1" route="/ground">
         <el-icon><location /></el-icon>
