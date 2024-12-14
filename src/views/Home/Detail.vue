@@ -33,10 +33,27 @@
         </div>
         <template #footer>
           <div style="overflow: auto; max-height: 55vh">
-            <span v-for="comment of commentData"  style="display: flex;flex-direction: column; gap: 10px; justify-content: start">
-              {{ comment.content }}
-            </span>
+            <div v-for="comment of commentData"  style="display: flex;flex-direction: column; gap: 10px; justify-content: start">
+              <span style="display: flex;justify-content: space-between">
+                <span style="display: flex; gap:10px; align-items: center">
+                  <span style="font-size: 1.2rem">{{ comment.username }}:</span>
+                  <span>{{ comment.content }}</span>
+                </span>
+                <el-button plain size="small" @click="toggleReply(comment)" >查看回复</el-button>
+              </span>
+              <div v-if="comment.replying">
+                <span style="display: flex; gap: 20px;align-items: center">
+                  <el-input type="text" v-model="comment.replyContent"/>
+                  <el-button type="success" @click="postReply(comment)" size="small" >发布回复</el-button>
+                </span>
+                <div>
+
+                </div>
+              </div>
+              <el-divider style="margin: 15px 0" />
+            </div>
           </div>
+
         </template>
 
       </el-card>
@@ -59,14 +76,45 @@ const showInfo = ref()
 const infoStore = useInfoStore()
 const commentContent = ref("")
 const commentData = ref()
-const isLike = ref(infoStore.isLike[articleId]? infoStore.isLike[articleId]: false)
-if(!infoStore.isLike[articleId]){
-  infoStore.isLike[articleId] = false
+const isLike = ref(infoStore.isLike[articleId] ?? false);
+if (!infoStore.isLike[articleId]) {
+  const storedLikes = JSON.parse(localStorage.getItem('isLike') || '{}');
+  infoStore.isLike = storedLikes;
+  isLike.value = storedLikes[articleId] ?? false;
 }
 onMounted(() => {
   getInfo()
+  getCommentData()
 })
+const toggleReply = (comment) => {
+  comment.replying = !comment.replying; // 切换回复框显示状态
+};
 
+const postReply = async (comment) => {
+  if (!comment.replyContent.trim()) {
+    ElNotification.warning("回复内容不能为空！");
+    return;
+  }
+
+  const res = await fetchRequest("/blog/comments", {
+    method: "POST",
+    body: {
+      article_id: articleId,
+      parent_id: comment.comment_id, // 父评论 ID
+      root_id: articleId,
+      content: comment.replyContent,
+    },
+  });
+
+  if (res.code === 200) {
+    comment.replying = false; // 隐藏回复框
+    comment.replyContent = ""; // 清空回复内容
+    getCommentData(); // 刷新评论数据
+    ElNotification.success("回复成功");
+  } else {
+    ElNotification.error(res.message);
+  }
+};
 const postComment = async () => {
   const res = await fetchRequest("/blog/comments", {
     method: "POST",
@@ -80,6 +128,8 @@ const postComment = async () => {
     commentContent.value = ""
     getCommentData()
     ElNotification.success("发布成功")
+  } else {
+    ElNotification.error(res.message)
   }
 }
 
@@ -87,16 +137,37 @@ const getCommentData = async () => {
   const res = await fetchRequest("/blog/comments", {
     method: "GET",
     params: {
-      article_id: articleId
-    }
-  })
+      article_id: articleId,
+    },
+  });
 
-  if(res.code === 200){
-    commentData.value = res.data
+  if (res.code === 200) {
+    commentData.value = res.data.map((item) => ({
+      ...item,
+      replying: false, // 新增字段，默认不显示回复框
+      replyContent: "", // 回复框内容
+    }));
+
+    const promises = commentData.value.map(async (item) => {
+      const userRes = await fetchRequest(`/user/${item.creater_id}`, {
+        method: "GET",
+      });
+      if (userRes.code === 200) {
+        item.username = userRes.data.username;
+      } else {
+        item.username = "未知用户";
+      }
+    });
+
+    await Promise.all(promises);
+  } else if (res.code === 404) {
+    commentData.value = [];
   } else {
-    ElNotification.error(res.message)
+    ElNotification.error(res.message);
   }
-}
+};
+
+
 const handleLikeClick = async () => {
   const res = await fetchRequest("/blog/articles/like", {
     method: "PUT",
@@ -104,12 +175,13 @@ const handleLikeClick = async () => {
       article_id: articleId
     }
   })
-  if(res.code === 200){
-    isLike.value = !isLike.value
-    infoStore.isLike[articleId] = isLike.value
-    showInfo.value.likes = res.data.likes
+  if (res.code === 200) {
+    isLike.value = !isLike.value; // 切换状态
+    infoStore.isLike[articleId] = isLike.value; // 更新全局状态
+    localStorage.setItem('isLike', JSON.stringify(infoStore.isLike)); // 将状态存储在本地存储
+    showInfo.value.likes = res.data.likes; // 更新页面上的点赞数
   }
-}
+};
 
 const getInfo = async () => {
   const res = await fetchRequest(`/blog/articles/${ articleId }`, {
@@ -118,7 +190,6 @@ const getInfo = async () => {
 
   if(res.code === 200){
     showInfo.value = res.data
-    console.log(showInfo.value)
   } else {
     ElNotification.error(res.massage)
   }
