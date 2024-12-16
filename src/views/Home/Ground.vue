@@ -38,7 +38,6 @@ import fetchRequest from "@/utils/request.ts";
 import router from "@/router";
 const curPage = ref(0)
 const showData = ref([])
-
 onMounted(() => {
   getBlog()
   console.log(showData.value)

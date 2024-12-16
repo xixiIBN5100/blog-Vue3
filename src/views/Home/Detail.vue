@@ -39,15 +39,26 @@
                   <span style="font-size: 1.2rem">{{ comment.username }}:</span>
                   <span>{{ comment.content }}</span>
                 </span>
-                <el-button plain size="small" @click="toggleReply(comment)" >查看回复</el-button>
+                <span>
+                  <el-button plain size="small" @click="toggleReply(comment)" >回复</el-button>
+                  <el-button type="danger" v-if="comment.isMyComment || role === 'administrator'" size="small" @click="deleteComment(comment.comment_id)">删除</el-button>
+                  <el-button type="primary" v-if="comment.isMyComment || role === 'administrator'" size="small" @click="editComment(comment.comment_id)">编辑</el-button>
+                </span>
               </span>
               <div v-if="comment.replying">
                 <span style="display: flex; gap: 20px;align-items: center">
                   <el-input type="text" v-model="comment.replyContent"/>
-                  <el-button type="success" @click="postReply(comment)" size="small" >发布回复</el-button>
+                  <el-button type="success" @click="postReply(comment);getReplyComment(comment.comment_id)" size="small" >发布回复</el-button>
                 </span>
+                <div style="display: flex;gap: 2px; flex-direction: column;margin-top: 5px">
+                  <div v-for="reply of showReplyComment" >
+                    <span style="display: flex; gap:10px; align-items: center; margin-left: 10px">
+                      <span >{{ reply.username }}:</span>
+                    <span style="font-size: 0.8rem">{{ reply.content }}</span>
+                </span>
+                  </div>
+                </div>
                 <div>
-
                 </div>
               </div>
               <el-divider style="margin: 15px 0" />
@@ -58,8 +69,15 @@
 
       </el-card>
     </div>
-
-
+    <el-dialog title="修改评论" v-model="showEdit">
+      <el-input type="textarea" :rows="2" resize="none" v-model="editContent" />
+      <template #footer>
+          <el-button @click="showEdit = false">取消</el-button>
+          <el-button type="primary" @click="confirmEditComment">
+            确认
+          </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -71,12 +89,35 @@ import {onMounted, ref} from "vue";
 import {ElNotification} from "element-plus";
 import {View} from "@element-plus/icons-vue";
 import {useInfoStore} from "@/stores/infoStore.ts";
-const articleId = localStorage.getItem('article_id')
+import {useLoginStore} from "@/stores/loginStore.ts";
+const articleId = Number(localStorage.getItem('article_id'))
 const showInfo = ref()
 const infoStore = useInfoStore()
 const commentContent = ref("")
 const commentData = ref()
+const showReplyComment = ref()
+const loginStore = useLoginStore()
+const showEdit = ref(false)
+const editContent = ref("")
+const role = ref(loginStore.role)
+const editCommentId = ref(-1)
 const isLike = ref(infoStore.isLike[articleId] ?? false);
+const deleteComment = async (comment_id) => {
+  const res = await fetchRequest("/blog/comments", {
+    method: "DELETE",
+    body: {
+      comment_id: comment_id
+    }
+  })
+  if(res.code === 200){
+    await getCommentData()
+    ElNotification.success("删除成功")
+  }
+}
+const editComment = (commentId) => {
+  showEdit.value = true
+  editCommentId.value = commentId
+}
 if (!infoStore.isLike[articleId]) {
   const storedLikes = JSON.parse(localStorage.getItem('isLike') || '{}');
   infoStore.isLike = storedLikes;
@@ -86,10 +127,49 @@ onMounted(() => {
   getInfo()
   getCommentData()
 })
+const confirmEditComment = async () => {
+  const res = await fetchRequest('/blog/comments', {
+    method: "PUT",
+    body: {
+      comment_id: editCommentId.value,
+      content: editContent.value
+    }
+  })
+  if(res.code === 200){
+    ElNotification.success("修改成功")
+    await getCommentData()
+    showEdit.value = false
+  }
+}
 const toggleReply = (comment) => {
+  getReplyComment(comment.comment_id)
   comment.replying = !comment.replying; // 切换回复框显示状态
 };
 
+const getReplyComment = async (commentId) => {
+  const res = await fetchRequest('/blog/comments', {
+    params: {
+      article_id: articleId,
+      comment_id: commentId
+    }
+  })
+  if(res.code === 200){
+    showReplyComment.value = res.data
+    const promises = showReplyComment.value.map(async (item) => {
+      const userRes = await fetchRequest(`/user/${ item.creater_id }`, {
+        method: "GET",
+      });
+      if (userRes.code === 200) {
+        item.username = userRes.data.username;
+      } else {
+        item.username = "未知用户";
+      }
+    });
+
+    await Promise.all(promises);
+    console.log(res.data)
+  }
+}
 const postReply = async (comment) => {
   if (!comment.replyContent.trim()) {
     ElNotification.warning("回复内容不能为空！");
@@ -101,15 +181,13 @@ const postReply = async (comment) => {
     body: {
       article_id: articleId,
       parent_id: comment.comment_id, // 父评论 ID
-      root_id: articleId,
+      root_id: comment.comment_id,
       content: comment.replyContent,
     },
   });
 
   if (res.code === 200) {
-    comment.replying = false; // 隐藏回复框
     comment.replyContent = ""; // 清空回复内容
-    getCommentData(); // 刷新评论数据
     ElNotification.success("回复成功");
   } else {
     ElNotification.error(res.message);
@@ -144,6 +222,7 @@ const getCommentData = async () => {
   if (res.code === 200) {
     commentData.value = res.data.map((item) => ({
       ...item,
+      isMyComment: loginStore.userId === item.creater_id,
       replying: false, // 新增字段，默认不显示回复框
       replyContent: "", // 回复框内容
     }));
