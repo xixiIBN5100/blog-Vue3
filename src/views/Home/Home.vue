@@ -22,6 +22,10 @@
         <el-icon><setting /></el-icon>
         <span>账号设置</span>
       </el-menu-item>
+      <el-menu-item index="5" route="/user" v-if="role === 'administrator'" >
+        <el-icon><User /></el-icon>
+        <span>人员管理</span>
+      </el-menu-item>
     </el-menu>
     <div style="flex: 1; height: 100vh">
     <router-view/>
@@ -33,6 +37,10 @@
 <script setup lang="ts">
 
 import {Avatar, Document, Location, Setting, User} from "@element-plus/icons-vue";
+import {useLoginStore} from "@/stores/loginStore.ts";
+
+const loginStore = useLoginStore()
+const role = loginStore.role
 </script>
 
 
