@@ -41,8 +41,8 @@
                 </span>
                 <span>
                   <el-button plain size="small" @click="toggleReply(comment)" >回复</el-button>
-                  <el-button type="danger" v-if="comment.isMyComment || role === 'administrator'" size="small" @click="deleteComment(comment.comment_id)">删除</el-button>
-                  <el-button type="primary" v-if="comment.isMyComment || role === 'administrator'" size="small" @click="editComment(comment.comment_id)">编辑</el-button>
+                  <el-button type="danger" v-if="comment.isMyComment || role === 'administrator' || role === 'root'" size="small" @click="deleteComment(comment.comment_id)">删除</el-button>
+                  <el-button type="primary" v-if="comment.isMyComment || role === 'administrator' || role === 'root' " size="small" @click="editComment(comment.comment_id)">编辑</el-button>
                 </span>
               </span>
               <div v-if="comment.replying">
@@ -50,12 +50,18 @@
                   <el-input type="text" v-model="comment.replyContent"/>
                   <el-button type="success" @click="postReply(comment);getReplyComment(comment.comment_id)" size="small" >发布回复</el-button>
                 </span>
-                <div style="display: flex;gap: 2px; flex-direction: column;margin-top: 5px">
-                  <div v-for="reply of showReplyComment" >
-                    <span style="display: flex; gap:10px; align-items: center; margin-left: 10px">
-                      <span >{{ reply.username }}:</span>
-                    <span style="font-size: 0.8rem">{{ reply.content }}</span>
-                </span>
+                <div style="display: flex;gap: 2px; flex-direction: column;margin-top: 10px">
+                  <div v-for="reply in comment.replies" >
+                    <span style="display: flex;justify-content: space-between;align-items: center">
+                      <span style="display: flex; gap:10px; align-items: center; margin-left: 10px;">
+                        <span >{{ reply.username }}:</span>
+                        <span style="font-size: 0.8rem">{{ reply.content }}</span>
+                      </span>
+                      <span style="display: flex;gap: 10px;align-items: center">
+                        <el-icon style="cursor: pointer;" @click="deleteComment(reply.comment_id, comment)"><Delete /></el-icon>
+                        <el-icon style="cursor: pointer" @click="openEditReplyDialog(reply,comment)"><Edit /></el-icon>
+                      </span>
+                    </span>
                   </div>
                 </div>
                 <div>
@@ -69,6 +75,23 @@
 
       </el-card>
     </div>
+    <el-dialog title="修改回复" v-model="showEditReplyDialog">
+      <el-input
+        type="textarea"
+        :rows="2"
+        resize="none"
+        v-model="editReplyContent"
+      />
+      <template #footer>
+        <el-button @click="showEditReplyDialog = false">取消</el-button>
+        <el-button
+          type="primary"
+          @click="confirmEditReply(parentComment_)"
+        >确认</el-button
+        >
+      </template>
+    </el-dialog>
+
     <el-dialog title="修改评论" v-model="showEdit">
       <el-input type="textarea" :rows="2" resize="none" v-model="editContent" />
       <template #footer>
@@ -87,7 +110,7 @@ import TitleBar from "@/components/titleBar.vue";
 import fetchRequest from "@/utils/request.ts";
 import {onMounted, ref} from "vue";
 import {ElNotification} from "element-plus";
-import {View} from "@element-plus/icons-vue";
+import {Delete, Edit, View} from "@element-plus/icons-vue";
 import {useInfoStore} from "@/stores/infoStore.ts";
 import {useLoginStore} from "@/stores/loginStore.ts";
 const articleId = Number(localStorage.getItem('article_id'))
@@ -95,25 +118,78 @@ const showInfo = ref()
 const infoStore = useInfoStore()
 const commentContent = ref("")
 const commentData = ref()
-const showReplyComment = ref()
 const loginStore = useLoginStore()
 const showEdit = ref(false)
 const editContent = ref("")
 const role = ref(loginStore.role)
+const editReplyId = ref(null); // 当前正在编辑的回复 ID
+const editReplyContent = ref(""); // 编辑中的回复内容
+const showEditReplyDialog = ref(false); // 控制编辑回复的模态框显示
 const editCommentId = ref(-1)
+const parentComment_= ref("2")
 const isLike = ref(infoStore.isLike[articleId] ?? false);
-const deleteComment = async (comment_id) => {
+// 打开编辑回复模态框
+const openEditReplyDialog = (reply,comment) => {
+  parentComment_.value = comment
+  editReplyId.value = reply.comment_id;
+  editReplyContent.value = reply.content;
+  showEditReplyDialog.value = true;
+};
+
+// 确认编辑回复
+const confirmEditReply = async (parentComment) => {
+  const res = await fetchRequest("/blog/comments", {
+    method: "PUT",
+    body: {
+      comment_id: editReplyId.value,
+      content: editReplyContent.value,
+    },
+  });
+
+  if (res.code === 200) {
+    // 更新对应的回复内容
+    console.log(parentComment)
+    const reply = parentComment.replies.find(
+      (r) => r.comment_id === editReplyId.value
+    );
+    if (reply) {
+      reply.content = editReplyContent.value;
+    }
+
+    ElNotification.success("修改成功");
+    showEditReplyDialog.value = false;
+  } else {
+    ElNotification.error(res.message || "修改失败");
+  }
+};
+
+const deleteComment = async (comment_id, parentComment = null) => {
   const res = await fetchRequest("/blog/comments", {
     method: "DELETE",
     body: {
-      comment_id: comment_id
+      comment_id: comment_id,
+    },
+  });
+
+  if (res.code === 200) {
+    if (parentComment) {
+      // 如果是回复，移除父评论的 replies 中的对应回复
+      parentComment.replies = parentComment.replies.filter(
+        (reply) => reply.comment_id !== comment_id
+      );
+    } else {
+      // 如果是评论，移除 commentData 中的对应评论
+      commentData.value = commentData.value.filter(
+        (comment) => comment.comment_id !== comment_id
+      );
     }
-  })
-  if(res.code === 200){
-    await getCommentData()
-    ElNotification.success("删除成功")
+
+    ElNotification.success("删除成功");
+  } else {
+    ElNotification.error(res.message || "删除失败");
   }
-}
+};
+
 const editComment = (commentId) => {
   showEdit.value = true
   editCommentId.value = commentId
@@ -124,9 +200,18 @@ if (!infoStore.isLike[articleId]) {
   isLike.value = storedLikes[articleId] ?? false;
 }
 onMounted(() => {
-  getInfo()
-  getCommentData()
-})
+  const userId = loginStore.userId; // 获取当前登录用户 ID
+  const userLikes = JSON.parse(localStorage.getItem('userLikes') || '{}');
+
+  // 初始化点赞状态
+  isLike.value = userLikes[userId]?.[articleId] ?? false;
+
+  // 拉取文章详情和评论
+  getInfo();
+  getCommentData();
+});
+
+
 const confirmEditComment = async () => {
   const res = await fetchRequest('/blog/comments', {
     method: "PUT",
@@ -142,34 +227,47 @@ const confirmEditComment = async () => {
   }
 }
 const toggleReply = (comment) => {
-  getReplyComment(comment.comment_id)
   comment.replying = !comment.replying; // 切换回复框显示状态
+
+  // 如果需要显示回复框且尚未加载过回复，获取回复数据
+  if (comment.replying && comment.replies.length === 0) {
+    getReplyComment(comment);
+  }
 };
 
-const getReplyComment = async (commentId) => {
+
+const getReplyComment = async (comment) => {
+  console.log(111)
   const res = await fetchRequest('/blog/comments', {
     params: {
       article_id: articleId,
-      comment_id: commentId
-    }
-  })
-  if(res.code === 200){
-    showReplyComment.value = res.data
-    const promises = showReplyComment.value.map(async (item) => {
-      const userRes = await fetchRequest(`/user/${ item.creater_id }`, {
+      comment_id: comment.comment_id,
+    },
+  });
+
+  if (res.code === 200) {
+    const replies = res.data.map((reply) => ({
+      ...reply,
+      username: "未知用户", // 默认用户名
+    }));
+
+    // 获取每个回复的用户名
+    const promises = replies.map(async (reply) => {
+      const userRes = await fetchRequest(`/user/${reply.creater_id}`, {
         method: "GET",
       });
       if (userRes.code === 200) {
-        item.username = userRes.data.username;
-      } else {
-        item.username = "未知用户";
+        reply.username = userRes.data.username;
       }
     });
 
     await Promise.all(promises);
-    console.log(res.data)
+
+    // 将回复绑定到对应评论的 replies
+    comment.replies = replies;
   }
-}
+};
+
 const postReply = async (comment) => {
   if (!comment.replyContent.trim()) {
     ElNotification.warning("回复内容不能为空！");
@@ -223,10 +321,12 @@ const getCommentData = async () => {
     commentData.value = res.data.map((item) => ({
       ...item,
       isMyComment: loginStore.userId === item.creater_id,
-      replying: false, // 新增字段，默认不显示回复框
+      replying: false, // 是否显示回复框
       replyContent: "", // 回复框内容
+      replies: [], // 新增字段，用于存储该评论的回复内容
     }));
 
+    // 获取每个评论的用户名
     const promises = commentData.value.map(async (item) => {
       const userRes = await fetchRequest(`/user/${item.creater_id}`, {
         method: "GET",
@@ -247,18 +347,43 @@ const getCommentData = async () => {
 };
 
 
+
 const handleLikeClick = async () => {
-  const res = await fetchRequest("/blog/articles/like", {
-    method: "PUT",
-    body: {
-      article_id: articleId
+  try {
+    const res = await fetchRequest("/blog/articles/like", {
+      method: "PUT",
+      body: { article_id: articleId },
+    });
+
+    if (res.code === 200) {
+      const userId = loginStore.userId; // 获取当前登录用户 ID
+      const userLikes = JSON.parse(localStorage.getItem('userLikes') || '{}');
+
+      // 更新点赞状态
+      isLike.value = !isLike.value;
+
+      // 初始化该用户的点赞数据
+      if (!userLikes[userId]) {
+        userLikes[userId] = {};
+      }
+
+      // 更新当前用户的点赞状态
+      userLikes[userId][articleId] = isLike.value;
+
+      // 更新本地存储
+      localStorage.setItem('userLikes', JSON.stringify(userLikes));
+
+      // 更新界面上的点赞数
+      showInfo.value.likes = res.data.likes;
+
+      ElNotification.success(
+        isLike.value ? "点赞成功！" : "取消点赞成功！"
+      );
+    } else {
+      ElNotification.error(res.message || "操作失败");
     }
-  })
-  if (res.code === 200) {
-    isLike.value = !isLike.value; // 切换状态
-    infoStore.isLike[articleId] = isLike.value; // 更新全局状态
-    localStorage.setItem('isLike', JSON.stringify(infoStore.isLike)); // 将状态存储在本地存储
-    showInfo.value.likes = res.data.likes; // 更新页面上的点赞数
+  } catch (error) {
+    ElNotification.error("服务器出错，操作失败");
   }
 };
 

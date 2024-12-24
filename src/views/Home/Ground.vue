@@ -31,8 +31,8 @@
                   <span style="display: flex;align-items: center;gap: 10px"><el-icon><View /></el-icon> {{ post.views }} </span>
                   <span>
                     <el-button plain @click="handleClick(post.article_id)">查看文章</el-button>
-                    <el-button v-if="role === 'administrator' || isMy(post.creater_id)" type="primary" @click="editPost(post)">修改</el-button>
-                    <el-button v-if="role === 'administrator' || isMy(post.creater_id)" type="danger" @click="confirmDelete(post.article_id)">删除</el-button>
+                    <el-button v-if="role === 'administrator'|| role === 'root' || isMy(post.creater_id)" type="primary" @click="editPost(post)">修改</el-button>
+                    <el-button v-if="role === 'administrator'|| role === 'root' || isMy(post.creater_id)" type="danger" @click="confirmDelete(post.article_id)">删除</el-button>
                   </span>
                 </span>
               </template>

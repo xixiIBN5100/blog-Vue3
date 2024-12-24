@@ -22,7 +22,7 @@
         <el-icon><setting /></el-icon>
         <span>账号设置</span>
       </el-menu-item>
-      <el-menu-item index="5" route="/user" v-if="role === 'administrator'" >
+      <el-menu-item index="5" route="/user" v-if="role === 'administrator' || role === 'root'" >
         <el-icon><User /></el-icon>
         <span>人员管理</span>
       </el-menu-item>
