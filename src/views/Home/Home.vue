@@ -10,7 +10,7 @@
         <el-icon><location /></el-icon>
         <span>博客广场</span>
       </el-menu-item>
-      <el-menu-item index="2" route="/postBlog">
+      <el-menu-item index="2" route="/postBlog" v-if="role === 'administrator' || role === 'root'">
         <el-icon><document /></el-icon>
         <span>发布博客</span>
       </el-menu-item>
