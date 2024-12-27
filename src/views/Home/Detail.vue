@@ -48,7 +48,7 @@
               <div v-if="comment.replying">
                 <span style="display: flex; gap: 20px;align-items: center">
                   <el-input type="text" v-model="comment.replyContent"/>
-                  <el-button type="success" @click="postReply(comment);getReplyComment(comment)" size="small" >发布回复</el-button>
+                  <el-button type="success" @click="postReply(comment);getReplyComment(comment,0)" size="small" >发布回复</el-button>
                 </span>
                 <div style="display: flex;gap: 2px; flex-direction: column;margin-top: 10px">
                   <div v-for="reply in comment.replies" >
@@ -63,6 +63,13 @@
                       </span>
                     </span>
                   </div>
+                  <el-pagination
+                    :current-page="replayPage"
+                    :page-size="replayPageSize"
+                    :total="totalReplay"
+                    @current-change="(page) => getReplyComment(comment, page)"
+                    style="margin-top: 10px; align-self: center;"
+                  />
                 </div>
                 <div>
                 </div>
@@ -130,6 +137,7 @@ const parentComment_= ref("2")
 const page = ref(0); // Keep track of the current page for pagination
 const pageSize = 10; // Define how many comments to load per page
 const replayPage = ref(0)
+const totalReplay = ref(1)
 const replayPageSize = 10;
 const isLike = ref(infoStore.isLike[articleId] ?? false);
 // 打开编辑回复模态框
@@ -223,13 +231,22 @@ const confirmEditComment = async () => {
       comment_id: editCommentId.value,
       content: editContent.value
     }
-  })
-  if(res.code === 200){
-    ElNotification.success("修改成功")
-    await getCommentData()
-    showEdit.value = false
+  });
+
+  if (res.code === 200) {
+    ElNotification.success("修改成功");
+
+    // 重置分页为第一页，清空评论数据，并重新加载评论
+    page.value = 0; // 重置页码为第一页
+    commentData.value = []; // 清空现有评论数据
+    await getCommentData(); // 重新获取评论数据
+
+    showEdit.value = false; // 隐藏编辑框
+  } else {
+    ElNotification.error(res.message || "修改失败");
   }
-}
+};
+
 const toggleReply = (comment) => {
   if (!comment || typeof comment !== "object") {
     console.error("Invalid comment object in toggleReply:", comment);
@@ -246,7 +263,7 @@ const toggleReply = (comment) => {
 
 
 
-const getReplyComment = async (comment) => {
+const getReplyComment = async (comment, page = ++replayPage.value) => {
 
   if (!comment || typeof comment !== "object" || !comment.comment_id) {
     console.error("Invalid comment object:", comment);
@@ -257,9 +274,11 @@ const getReplyComment = async (comment) => {
       params: {
         article_id: articleId,
         comment_id: comment.comment_id,
+        page: page
     },
     });
-
+    replayPage.value = page
+    totalReplay.value = res.pagination.total_count
     if (res.code === 200) {
       const replies = res.data.map((reply) => ({
         ...reply,
@@ -357,7 +376,7 @@ const getCommentData = async () => {
     params: {
       article_id: articleId,
       size: pageSize,
-      page: ++page.value, // Pass the current page number
+      page: ++page.value, // 请求下一页数据
     },
   });
 
@@ -365,13 +384,13 @@ const getCommentData = async () => {
     const tempComments = res.data.map((item) => ({
       ...item,
       isMyComment: loginStore.userId === item.creater_id,
-      replying: false, // Whether to show the reply box
-      replyContent: "", // Content of the reply being typed
-      replies: [], // Initialize as empty array for replies
-      username: "加载中...", // Placeholder for loading username
+      replying: false, // 是否显示回复框
+      replyContent: "", // 当前正在输入的回复内容
+      replies: [], // 初始化为空数组
+      username: "加载中...", // 用户名占位符
     }));
 
-    // Fetch usernames asynchronously for all comments
+    // 异步获取评论者的用户名
     await Promise.all(
       tempComments.map(async (comment) => {
         const userRes = await fetchRequest(`/user/${comment.creater_id}`, {
@@ -383,14 +402,15 @@ const getCommentData = async () => {
       })
     );
 
-    // Append the comments to the existing commentData (if needed)
+    // 将新评论追加到现有数据
     commentData.value = [...(commentData.value || []), ...tempComments];
-
-  } else if(res.code === 404){
+  } else if (res.code === 404) {
+    // 没有更多评论
   } else {
     ElNotification.error(res.message || "加载评论失败");
   }
 };
+
 
 const loadMore = () => {
   getCommentData();
