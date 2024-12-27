@@ -15,7 +15,7 @@
         </el-form-item>
         <el-form-item>
           <div style="display: flex; justify-content: center;width: 100%">
-            <el-button type="success" style="width: 100%" @click="handleSubmit" >发布</el-button>
+            <el-button type="success" style="width: 100%"  @click="handleSubmit" >发布</el-button>
           </div>
         </el-form-item>
       </el-form>

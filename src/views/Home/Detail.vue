@@ -32,7 +32,7 @@
           <span style="margin-top:10px;display: flex; justify-content: end"><el-button type="success"  @click="postComment">发布</el-button></span>
         </div>
         <template #footer>
-          <div style="overflow: auto; max-height: 45vh">
+          <div style="overflow: auto; max-height: 45vh" v-infinite-scroll="loadMore">
             <div v-for="comment of commentData"  style="display: flex;flex-direction: column; gap: 10px; justify-content: start">
               <span style="display: flex;justify-content: space-between">
                 <span style="display: flex; gap:10px; align-items: center">
@@ -108,7 +108,7 @@
 
 import TitleBar from "@/components/titleBar.vue";
 import fetchRequest from "@/utils/request.ts";
-import {onMounted, ref} from "vue";
+import {nextTick, onMounted, ref} from "vue";
 import {ElNotification} from "element-plus";
 import {Delete, Edit, View} from "@element-plus/icons-vue";
 import {useInfoStore} from "@/stores/infoStore.ts";
@@ -127,6 +127,10 @@ const editReplyContent = ref(""); // 编辑中的回复内容
 const showEditReplyDialog = ref(false); // 控制编辑回复的模态框显示
 const editCommentId = ref(-1)
 const parentComment_= ref("2")
+const page = ref(0); // Keep track of the current page for pagination
+const pageSize = 10; // Define how many comments to load per page
+const replayPage = ref(0)
+const replayPageSize = 10;
 const isLike = ref(infoStore.isLike[articleId] ?? false);
 // 打开编辑回复模态框
 const openEditReplyDialog = (reply,comment) => {
@@ -243,40 +247,42 @@ const toggleReply = (comment) => {
 
 
 const getReplyComment = async (comment) => {
+
   if (!comment || typeof comment !== "object" || !comment.comment_id) {
     console.error("Invalid comment object:", comment);
     return;
   }
-
-  const res = await fetchRequest("/blog/comments", {
-    params: {
-      article_id: articleId,
-      comment_id: comment.comment_id,
+  nextTick(async () => {
+    const res = await fetchRequest("/blog/comments", {
+      params: {
+        article_id: articleId,
+        comment_id: comment.comment_id,
     },
-  });
-
-  if (res.code === 200) {
-    const replies = res.data.map((reply) => ({
-      ...reply,
-      username: "未知用户", // 默认用户名
-      isMyReply: reply.creater_id === loginStore.userId, // 判断是否为自己的回复
-    }));
-
-    // 获取每个回复的用户名
-    const promises = replies.map(async (reply) => {
-      const userRes = await fetchRequest(`/user/${reply.creater_id}`, {
-        method: "GET",
-      });
-      if (userRes.code === 200) {
-        reply.username = userRes.data.username;
-      }
     });
 
-    await Promise.all(promises);
+    if (res.code === 200) {
+      const replies = res.data.map((reply) => ({
+        ...reply,
+        username: "未知用户", // 默认用户名
+        isMyReply: reply.creater_id === loginStore.userId, // 判断是否为自己的回复
+      }));
 
-    // 确保给正确的 comment 对象赋值
-    comment.replies = replies;
-  }
+      // 获取每个回复的用户名
+      const promises = replies.map(async (reply) => {
+        const userRes = await fetchRequest(`/user/${reply.creater_id}`, {
+          method: "GET",
+        });
+        if (userRes.code === 200) {
+          reply.username = userRes.data.username;
+        }
+      });
+
+      await Promise.all(promises);
+
+      // 确保给正确的 comment 对象赋值
+      comment.replies = replies;
+    }
+  })
 };
 
 
@@ -320,7 +326,6 @@ const postComment = async () => {
     ElNotification.warning("评论内容不能为空！");
     return;
   }
-
   const res = await fetchRequest("/blog/comments", {
     method: "POST",
     body: {
@@ -333,12 +338,15 @@ const postComment = async () => {
     commentContent.value = ""; // 清空评论框
     ElNotification.success("发布成功");
 
-    // 发布成功后刷新评论列表
-    await getCommentData();
+    // 发布成功后重置分页并刷新评论列表
+    page.value = 0; // 重置分页页码
+    commentData.value = []; // 清空现有评论数据
+    await getCommentData(); // 重新获取评论数据
   } else {
     ElNotification.error(res.message);
   }
 };
+
 
 
 
@@ -348,6 +356,8 @@ const getCommentData = async () => {
     method: "GET",
     params: {
       article_id: articleId,
+      size: pageSize,
+      page: ++page.value, // Pass the current page number
     },
   });
 
@@ -355,36 +365,36 @@ const getCommentData = async () => {
     const tempComments = res.data.map((item) => ({
       ...item,
       isMyComment: loginStore.userId === item.creater_id,
-      replying: false, // 是否显示回复框
-      replyContent: "", // 回复框内容
-      replies: [], // 初始化为空数组
-      username: "加载中...", // 默认用户名加载中的占位
+      replying: false, // Whether to show the reply box
+      replyContent: "", // Content of the reply being typed
+      replies: [], // Initialize as empty array for replies
+      username: "加载中...", // Placeholder for loading username
     }));
 
-    // 异步获取用户名
+    // Fetch usernames asynchronously for all comments
     await Promise.all(
-      tempComments.map(async (item) => {
-        const userRes = await fetchRequest(`/user/${item.creater_id}`, {
+      tempComments.map(async (comment) => {
+        const userRes = await fetchRequest(`/user/${comment.creater_id}`, {
           method: "GET",
         });
         if (userRes.code === 200) {
-          item.username = userRes.data.username;
-        } else {
-          item.username = "未知用户";
+          comment.username = userRes.data.username;
         }
       })
     );
 
-    // 确保所有用户名更新完成后再赋值
-    commentData.value = tempComments;
-  } else if (res.code === 404) {
-    commentData.value = [];
+    // Append the comments to the existing commentData (if needed)
+    commentData.value = [...(commentData.value || []), ...tempComments];
+
+  } else if(res.code === 404){
   } else {
-    ElNotification.error(res.message);
+    ElNotification.error(res.message || "加载评论失败");
   }
 };
 
-
+const loadMore = () => {
+  getCommentData();
+};
 
 
 
