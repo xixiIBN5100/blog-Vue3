@@ -26,21 +26,29 @@
         <el-icon><User /></el-icon>
         <span>人员管理</span>
       </el-menu-item>
+      <div style="display: flex;justify-content: center;margin-top: 70vh;width: 100%">
+        <el-button type="danger" @click="logOut">退出登录</el-button>
+      </div>
     </el-menu>
     <div style="flex: 1; height: 100vh">
     <router-view/>
     </div>
   </div>
-
 </template>
 
 <script setup lang="ts">
 
 import {Avatar, Document, Location, Setting, User} from "@element-plus/icons-vue";
 import {useLoginStore} from "@/stores/loginStore.ts";
+import router from "@/router";
 
 const loginStore = useLoginStore()
 const role = loginStore.role
+
+const logOut = () => {
+  document.cookie = "PHPSESSID = ''"
+  router.push("/")
+}
 </script>
 
 
