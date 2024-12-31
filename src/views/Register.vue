@@ -4,35 +4,39 @@
       <h1 class="title">Welcome Register</h1>
       <p class="subtitle">Join us now!</p>
 
-      <div class="form-group">
-        <label>E-mail</label>
-        <el-input
-          v-model="registerData.email"
-          placeholder="Enter your e-mail"
-        />
-      </div>
+      <el-form
+        ref="formRef"
+        :model="registerData"
+        :rules="rules"
+        label-position="top"
+      >
+        <el-form-item prop="email" label="E-mail">
+          <el-input
+            v-model="registerData.email"
+            placeholder="Enter your e-mail"
+          />
+        </el-form-item>
 
-      <div class="form-group">
-        <label>Username</label>
-        <el-input
-          v-model="registerData.username"
-          placeholder="Enter your username"
-        />
-      </div>
+        <el-form-item prop="username" label="Username">
+          <el-input
+            v-model="registerData.username"
+            placeholder="Enter your username"
+          />
+        </el-form-item>
 
-      <div class="form-group">
-        <label>Password</label>
-        <el-input
-          v-model="registerData.password"
-          type="password"
-          placeholder="Enter your password"
-          show-password
-        />
-      </div>
+        <el-form-item prop="password" label="Password">
+          <el-input
+            v-model="registerData.password"
+            type="password"
+            placeholder="Enter your password"
+            show-password
+          />
+        </el-form-item>
 
-      <el-button class="login-btn" type="primary" @click="handleRegister">
-        Register
-      </el-button>
+        <el-button class="login-btn" type="primary" @click="handleRegister">
+          Register
+        </el-button>
+      </el-form>
 
       <div class="additional-links">
         <a href="/">Has Account?</a>
@@ -43,9 +47,12 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import type { FormInstance, FormRules } from 'element-plus'
 import fetchRequest from '@/utils/request';
-import {ElNotification} from "element-plus";
+import { ElNotification } from "element-plus";
 import router from "@/router";
+
+const formRef = ref<FormInstance>()
 
 const registerData = ref({
   email: "",
@@ -53,25 +60,48 @@ const registerData = ref({
   password: ""
 })
 
+// 表单验证规则
+const rules = ref<FormRules>({
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入正确的邮箱', trigger: 'blur' }
+  ],
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 6, max: 20, message: '长度为6到20位数', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '长度至少为6位数', trigger: 'blur' }
+  ]
+})
+
 const handleRegister = async () => {
-  try {
-    const data = await fetchRequest('/register', {
-      method: 'POST',
-      body: registerData.value
-    });
-    if(data.code === 200) {
-      ElNotification.success("注册成功")
-      router.push("/")
-    } else {
-      ElNotification.error(data.msg)
+  if (!formRef.value) return
+
+  await formRef.value.validate(async (valid, fields) => {
+    if (valid) {
+      try {
+        const data = await fetchRequest('/register', {
+          method: 'POST',
+          body: registerData.value
+        });
+        if(data.code === 200) {
+          ElNotification.success("Registration successful")
+          router.push("/")
+        } else {
+          ElNotification.error(data.message)
+        }
+      } catch (e) {
+        ElNotification.error(e as string)
+      }
     }
-  } catch (e) {
-    ElNotification.error(e)
-  }
+  })
 }
 </script>
 
 <style scoped>
+/* 保持原有样式不变 */
 .login-container {
   min-height: 100vh;
   display: flex;
@@ -105,18 +135,6 @@ const handleRegister = async () => {
   text-align: center;
   margin-bottom: 30px;
   font-size: 14px;
-}
-
-.form-group {
-  margin-bottom: 24px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  color: #444;
-  font-size: 14px;
-  font-weight: 500;
 }
 
 :deep(.el-input__wrapper) {
@@ -159,11 +177,6 @@ const handleRegister = async () => {
 
 .additional-links a:hover {
   color: #764ba2;
-}
-
-.divider {
-  margin: 0 10px;
-  color: #999;
 }
 
 @keyframes slideUp {

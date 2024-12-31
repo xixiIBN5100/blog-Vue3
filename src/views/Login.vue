@@ -36,7 +36,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import fetchRequest from "@/utils/request.ts";
-import {ElNotification} from "element-plus";
+import {ElNotification, type FormRules} from "element-plus";
 import { useLoginStore } from "@/stores/loginStore.ts";
 import router from "@/router";
 
@@ -45,6 +45,18 @@ const loginData = ref({
   username: "",
   password: ""
 })
+
+const rules = ref<FormRules>({
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 6, max: 20, message: '长度为6到20位数', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '长度至少为6位数', trigger: 'blur' }
+  ]
+  }
+)
 
 const handleLogin = async () => {
   try {
@@ -59,7 +71,7 @@ const handleLogin = async () => {
       loginStore.role = data.data.role
       await router.push("/ground")
     } else {
-      ElNotification.error(data.msg)
+      ElNotification.error(data.message)
     }
   } catch (e) {
     ElNotification.error(e)

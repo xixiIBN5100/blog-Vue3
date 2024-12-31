@@ -78,7 +78,7 @@ const handleClick = async () => {
       submitForm.value.new_password = ""
       submitForm.value.old_password = ""
     } else {
-      ElNotification.error(res.msg)
+      ElNotification.error(res.message)
     }
   } catch (e) {
     ElNotification.error(e)

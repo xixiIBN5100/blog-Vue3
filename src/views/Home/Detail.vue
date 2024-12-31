@@ -8,9 +8,7 @@
       <template #header v-if="showInfo.title && showInfo.content">
         {{ showInfo.title }}
       </template>
-      <div>
-        {{ showInfo.content }}
-      </div>
+      <MdPreview :id="id" :modelValue="showInfo.content" />
       <template #footer>
         <span style="display: flex;justify-content: space-between">
           <span style="display: flex; gap: 20px; align-items: center">
@@ -139,6 +137,12 @@ const pageSize = 10; // Define how many comments to load per page
 const replayPage = ref(0)
 const totalReplay = ref(1)
 const replayPageSize = 10;
+import { MdPreview, MdCatalog } from 'md-editor-v3';
+// preview.css相比style.css少了编辑器那部分样式
+import 'md-editor-v3/lib/preview.css';
+
+const id = 'preview-only';
+const scrollElement = document.documentElement;
 const isLike = ref(infoStore.isLike[articleId] ?? false);
 // 打开编辑回复模态框
 const openEditReplyDialog = (reply,comment) => {

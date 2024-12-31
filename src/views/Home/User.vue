@@ -13,7 +13,7 @@
         <el-table-column fixed="right" label="Operations" min-width="120">
           <template #default="{ row }">
             <el-button link type="danger" size="small" @click="handleDelete(row.user_id)">删除</el-button>
-            <el-button link type="primary" size="small" @click="openEditDialog(row)">编辑</el-button>
+            <el-button link type="primary" size="small" @click="openEditDialog(row)" v-if="row.role !== 'root'">编辑</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -49,7 +49,6 @@ import { User } from "@element-plus/icons-vue";
 import { onMounted, ref } from "vue";
 import fetchRequest from "@/utils/request.ts";
 import { ElNotification } from "element-plus";
-
 const userData = ref<any[]>([]);
 
 // Edit dialog visibility

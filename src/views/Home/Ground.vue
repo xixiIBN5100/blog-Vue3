@@ -23,10 +23,6 @@
               <template #header>
                 {{ post.title }}
               </template>
-              <div>
-                {{ post.content }}
-              </div>
-              <template #footer>
                 <span style="display: flex;justify-content: space-between">
                   <span style="display: flex;align-items: center;gap: 10px"><el-icon><View /></el-icon> {{ post.views }} </span>
                   <span>
@@ -35,7 +31,6 @@
                     <el-button v-if="role === 'administrator'|| role === 'root' || isMy(post.creater_id)" type="danger" @click="confirmDelete(post.article_id)">删除</el-button>
                   </span>
                 </span>
-              </template>
             </el-card>
           </div>
         </div>
