@@ -8,7 +8,7 @@
       <template #header v-if="showInfo.title && showInfo.content">
         {{ showInfo.title }}
       </template>
-      <MdPreview :id="id" :modelValue="showInfo.content" />
+      <MdPreview :id="id" :modelValue="showInfo.content" style="max-height: 20vh" />
       <template #footer>
         <span style="display: flex;justify-content: space-between">
           <span style="display: flex; gap: 20px; align-items: center">
@@ -30,7 +30,7 @@
           <span style="margin-top:10px;display: flex; justify-content: end"><el-button type="success"  @click="postComment">发布</el-button></span>
         </div>
         <template #footer>
-          <div style="overflow: auto; max-height: 45vh" v-infinite-scroll="loadMore">
+          <div style="overflow: auto; max-height: 25vh" v-infinite-scroll="loadMore">
             <div v-for="comment of commentData"  style="display: flex;flex-direction: column; gap: 10px; justify-content: start">
               <span style="display: flex;justify-content: space-between">
                 <span style="display: flex; gap:10px; align-items: center">
@@ -46,7 +46,7 @@
               <div v-if="comment.replying">
                 <span style="display: flex; gap: 20px;align-items: center">
                   <el-input type="text" v-model="comment.replyContent"/>
-                  <el-button type="success" @click="postReply(comment);getReplyComment(comment,0)" size="small" >发布回复</el-button>
+                  <el-button type="success" @click="handleReplay(comment)" size="small" >发布回复</el-button>
                 </span>
                 <div style="display: flex;gap: 2px; flex-direction: column;margin-top: 10px">
                   <div v-for="reply in comment.replies" >
@@ -62,9 +62,9 @@
                     </span>
                   </div>
                   <el-pagination
-                    :current-page="replayPage"
+                    :current-page="replayPage[comment.comment_id]"
                     :page-size="replayPageSize"
-                    :total="totalReplay"
+                    :total="totalReplay[comment.comment_id]"
                     @current-change="(page) => getReplyComment(comment, page)"
                     style="margin-top: 10px; align-self: center;"
                   />
@@ -134,9 +134,9 @@ const editCommentId = ref(-1)
 const parentComment_= ref("2")
 const page = ref(0); // Keep track of the current page for pagination
 const pageSize = 10; // Define how many comments to load per page
-const replayPage = ref(0)
-const totalReplay = ref(1)
-const replayPageSize = 10;
+const replayPage = ref({});
+const totalReplay = ref({});
+const replayPageSize = 5;
 import { MdPreview, MdCatalog } from 'md-editor-v3';
 // preview.css相比style.css少了编辑器那部分样式
 import 'md-editor-v3/lib/preview.css';
@@ -227,6 +227,11 @@ onMounted(() => {
   getCommentData();
 });
 
+const handleReplay = (comment) => {
+  postReply(comment);
+  setTimeout(() =>{},1000);
+  getReplyComment(comment,0)
+}
 
 const confirmEditComment = async () => {
   const res = await fetchRequest('/blog/comments', {
@@ -257,6 +262,14 @@ const toggleReply = (comment) => {
     return;
   }
 
+  // 初始化该评论的分页信息
+  if (!totalReplay.value[comment.comment_id]) {
+    totalReplay.value[comment.comment_id] = 0;
+  }
+  if (!replayPage.value[comment.comment_id]) {
+    replayPage.value[comment.comment_id] = 0;
+  }
+
   comment.replying = !comment.replying; // 切换回复框显示状态
 
   // 如果需要显示回复框且尚未加载过回复，获取回复数据
@@ -267,23 +280,27 @@ const toggleReply = (comment) => {
 
 
 
-const getReplyComment = async (comment, page = ++replayPage.value) => {
 
+const getReplyComment = async (comment, page = ++replayPage.value[comment.comment_id]) => {
   if (!comment || typeof comment !== "object" || !comment.comment_id) {
     console.error("Invalid comment object:", comment);
     return;
   }
-  nextTick(async () => {
+
+  try {
     const res = await fetchRequest("/blog/comments", {
       params: {
         article_id: articleId,
         comment_id: comment.comment_id,
-        page: page
-    },
+        page: page,
+        size: replayPageSize
+      },
     });
-    replayPage.value = page
-    totalReplay.value = res.pagination.total_count
+
     if (res.code === 200) {
+      replayPage.value[comment.comment_id] = page;
+      totalReplay.value[comment.comment_id] = res.pagination.total_count;
+
       const replies = res.data.map((reply) => ({
         ...reply,
         username: "未知用户", // 默认用户名
@@ -304,10 +321,13 @@ const getReplyComment = async (comment, page = ++replayPage.value) => {
 
       // 确保给正确的 comment 对象赋值
       comment.replies = replies;
+    } else {
+      console.error("Failed to fetch replies:", res.message);
     }
-  })
+  } catch (error) {
+    console.error("Error fetching replies:", error);
+  }
 };
-
 
 
 const postReply = async (comment) => {
@@ -364,6 +384,7 @@ const postComment = async () => {
     // 发布成功后重置分页并刷新评论列表
     page.value = 0; // 重置分页页码
     commentData.value = []; // 清空现有评论数据
+    setTimeout(() =>{},500)
     await getCommentData(); // 重新获取评论数据
   } else {
     ElNotification.error(res.message);

@@ -53,11 +53,8 @@
         style="margin-bottom: 20px"
         placeholder="请输入标题"
       />
-      <el-input
-        type="textarea"
-        :rows="4"
+      <MdEditor
         v-model="editContent"
-        placeholder="请输入内容"
       />
       <template #footer>
         <el-button @click="isShowEdit = false">取消</el-button>
@@ -75,7 +72,8 @@ import fetchRequest from "@/utils/request.ts";
 import router from "@/router";
 import { useLoginStore } from "@/stores/loginStore.ts";
 import { ElNotification } from "element-plus";
-
+import { MdEditor } from 'md-editor-v3';
+import 'md-editor-v3/lib/style.css';
 const editContent = ref(""); // 编辑文章的内容
 const editTitle = ref(""); // 编辑文章的标题
 const curPage = ref(1); // 当前分页，初始为 1

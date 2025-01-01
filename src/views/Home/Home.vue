@@ -1,8 +1,8 @@
 <template>
   <div style="display: flex;">
     <el-menu
-
-      style="flex: 0.15; height: 100vh;"
+      background-color="#f3f3f3"
+      style="flex: 0.15; max-height: 300vh;"
       :router="true"
       default-active="1"
     >
