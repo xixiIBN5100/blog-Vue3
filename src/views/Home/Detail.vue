@@ -39,7 +39,7 @@
                 </span>
                 <span>
                   <el-button plain size="small" @click="toggleReply(comment)" >回复</el-button>
-                  <el-button type="danger" v-if="comment.isMyComment || role === 'administrator' || role === 'root'" size="small" @click="deleteComment(comment.comment_id)">删除</el-button>
+                  <el-button type="danger" v-if="comment.isMyComment || role === 'administrator' || role === 'root'" size="small" @click="deleteComment(comment)">删除</el-button>
                   <el-button type="primary" v-if="comment.isMyComment || role === 'administrator' || role === 'root' " size="small" @click="editComment(comment.comment_id)">编辑</el-button>
                 </span>
               </span>
@@ -56,7 +56,7 @@
                         <span style="font-size: 0.8rem">{{ reply.content }}</span>
                       </span>
                       <span style="display: flex;gap: 10px;align-items: center">
-                        <el-icon style="cursor: pointer;" @click="deleteComment(reply.comment_id, comment)" v-if=" reply.isMyReply|| role === 'administrator' || role === 'root'"><Delete /></el-icon>
+                        <el-icon style="cursor: pointer;" @click="deleteComment(reply, comment)" v-if=" reply.isMyReply|| role === 'administrator' || role === 'root'"><Delete /></el-icon>
                         <el-icon style="cursor: pointer" @click="openEditReplyDialog(reply,comment)" v-if="reply.isMyReply || role === 'administrator' || role === 'root'"><Edit /></el-icon>
                       </span>
                     </span>
@@ -179,24 +179,24 @@ const confirmEditReply = async (parentComment) => {
   }
 };
 
-const deleteComment = async (comment_id, parentComment = null) => {
+const deleteComment = async (comment, parentComment = null) => {
   const res = await fetchRequest("/blog/comments", {
     method: "DELETE",
     body: {
-      comment_id: comment_id,
+      comment_id: comment.comment_id,
     },
   });
-
   if (res.code === 200) {
     if (parentComment) {
+
       // 如果是回复，移除父评论的 replies 中的对应回复
       parentComment.replies = parentComment.replies.filter(
-        (reply) => reply.comment_id !== comment_id
+        (reply) => reply.comment_id !== comment.comment_id
       );
     } else {
       // 如果是评论，移除 commentData 中的对应评论
       commentData.value = commentData.value.filter(
-        (comment) => comment.comment_id !== comment_id
+        (comment) => comment.comment_id !== comment.comment_id
       );
     }
 

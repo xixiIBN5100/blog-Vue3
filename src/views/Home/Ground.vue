@@ -8,13 +8,18 @@
       <div style="display: flex; justify-content: center">
         <el-input
           v-model="searchContent"
-          style="max-width: 900px"
+          style="max-width: 600px"
           placeholder="Please input"
         >
           <template #prepend>
             <el-button :icon="Search" @click="search" />
           </template>
         </el-input>
+        <el-radio-group v-model="sort" @change="handleSortChange" style="margin-left: 20px">
+          <el-radio-button value="popular" label="按热度"></el-radio-button>
+          <el-radio-button value="asc" label="最新"></el-radio-button>
+          <el-radio-button value="desc" label="最早"></el-radio-button>
+        </el-radio-group>
       </div>
       <ul v-infinite-scroll="loadMore" style="overflow: auto; max-height: 75vh">
         <div style="display: flex; flex-direction: column; gap: 20px" v-if="showData.length">
@@ -91,9 +96,20 @@ const loginStore = useLoginStore();
 const userId = loginStore.userId;
 const role = loginStore.role;
 
+const sort = ref("popular")
 onMounted(() => {
   getBlog();
 });
+const handleSortChange = () => {
+  // 切换排序时，清空数据并重置分页
+  curPage.value = 1; // 重置普通模式分页
+  searchPage.value = 1; // 重置搜索模式分页
+  showData.value = []; // 清空当前展示的数据
+  hasMoreData.value = true; // 恢复加载更多的能力
+
+  // 重新获取文章列表数据
+  getBlog(searchContent.value, isSearching.value, true);
+};
 
 const confirmEditPost = async () => {
   if (!editTitle.value || !editContent.value) {
@@ -189,15 +205,21 @@ const loadMore = async () => {
   }
 };
 
-const getBlog = async (keyword = undefined, search = false) => {
-  // 根据是否为搜索模式选择分页
-  const page = search ? searchPage.value : curPage.value;
+const getBlog = async (keyword = undefined, search = false, isSort = false) => {
+  let page = undefined
+  if(!isSort){
+    page = search ? searchPage.value : curPage.value;
+  } else {
+
+  }
+
 
   const res = await fetchRequest("/blog/articleList", {
     method: "GET",
     params: {
       page: page,
       size: 4,
+      sort: sort.value,
       ...(keyword && { keyword }),
     },
   });
