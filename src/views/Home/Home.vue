@@ -6,6 +6,8 @@
       :router="true"
       default-active="1"
     >
+      <div style="display: flex;flex-direction: column; justify-content: space-between; height: 100%">
+      <div>
       <el-menu-item index="1" route="/ground">
         <el-icon><location /></el-icon>
         <span>博客广场</span>
@@ -26,8 +28,10 @@
         <el-icon><User /></el-icon>
         <span>人员管理</span>
       </el-menu-item>
-      <div style="display: flex;justify-content: center;margin-top: 70vh;width: 100%">
+      </div>
+      <div style="display: flex;justify-content: center;width: 100%; margin-bottom: 20px">
         <el-button type="danger" @click="logOut">退出登录</el-button>
+      </div>
       </div>
     </el-menu>
     <div style="flex: 1; height: 100vh">

@@ -218,7 +218,7 @@ const getBlog = async (keyword = undefined, search = false, isSort = false) => {
     method: "GET",
     params: {
       page: page,
-      size: 4,
+      size: 6,
       sort: sort.value,
       ...(keyword && { keyword }),
     },

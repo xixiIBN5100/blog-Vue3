@@ -1,14 +1,14 @@
 <template>
   <div style=" height: 100vh;" >
     <TitleBar>
-       <span>博客详情</span>
+      <el-icon ><Back @click="router.push('/ground')" style="cursor: pointer" /></el-icon><span>博客详情</span>
     </TitleBar>
     <div style="padding: 10px 30px; margin-top: 10px">
     <el-card v-if="showInfo" >
       <template #header v-if="showInfo.title && showInfo.content">
         {{ showInfo.title }}
       </template>
-      <MdPreview :id="id" :modelValue="showInfo.content" style="max-height: 20vh" />
+      <MdPreview :id="id" :modelValue="showInfo.content"  />
       <template #footer>
         <span style="display: flex;justify-content: space-between">
           <span style="display: flex; gap: 20px; align-items: center">
@@ -30,7 +30,7 @@
           <span style="margin-top:10px;display: flex; justify-content: end"><el-button type="success"  @click="postComment">发布</el-button></span>
         </div>
         <template #footer>
-          <div style="overflow: auto; max-height: 25vh" v-infinite-scroll="loadMore">
+          <div style="overflow: auto; max-height: 50vh" v-infinite-scroll="loadMore">
             <div v-for="comment of commentData"  style="display: flex;flex-direction: column; gap: 10px; justify-content: start">
               <span style="display: flex;justify-content: space-between">
                 <span style="display: flex; gap:10px; align-items: center">
@@ -48,7 +48,7 @@
                   <el-input type="text" v-model="comment.replyContent"/>
                   <el-button type="success" @click="handleReplay(comment)" size="small" >发布回复</el-button>
                 </span>
-                <div style="display: flex;gap: 2px; flex-direction: column;margin-top: 10px">
+                <div style="display: flex;gap: 5px; flex-direction: column;margin-top: 10px">
                   <div v-for="reply in comment.replies" >
                     <span style="display: flex;justify-content: space-between;align-items: center">
                       <span style="display: flex; gap:10px; align-items: center; margin-left: 10px;">
@@ -115,7 +115,7 @@ import TitleBar from "@/components/titleBar.vue";
 import fetchRequest from "@/utils/request.ts";
 import {nextTick, onMounted, ref} from "vue";
 import {ElNotification} from "element-plus";
-import {Delete, Edit, View} from "@element-plus/icons-vue";
+import {Back, Delete, Edit, View} from "@element-plus/icons-vue";
 import {useInfoStore} from "@/stores/infoStore.ts";
 import {useLoginStore} from "@/stores/loginStore.ts";
 const articleId = Number(localStorage.getItem('article_id'))
@@ -133,13 +133,14 @@ const showEditReplyDialog = ref(false); // 控制编辑回复的模态框显示
 const editCommentId = ref(-1)
 const parentComment_= ref("2")
 const page = ref(0); // Keep track of the current page for pagination
-const pageSize = 10; // Define how many comments to load per page
+const pageSize = 8; // Define how many comments to load per page
 const replayPage = ref({});
 const totalReplay = ref({});
 const replayPageSize = 5;
 import { MdPreview, MdCatalog } from 'md-editor-v3';
 // preview.css相比style.css少了编辑器那部分样式
 import 'md-editor-v3/lib/preview.css';
+import router from "@/router";
 
 const id = 'preview-only';
 const scrollElement = document.documentElement;

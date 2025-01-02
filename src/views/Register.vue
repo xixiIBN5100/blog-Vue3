@@ -87,7 +87,7 @@ const handleRegister = async () => {
           body: registerData.value
         });
         if(data.code === 200) {
-          ElNotification.success("Registration successful")
+          ElNotification.success("注册成功")
           router.push("/")
         } else {
           ElNotification.error(data.message)
